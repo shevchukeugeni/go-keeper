@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS users;
+
+DROP TABLE IF EXISTS texts;
+
+DROP TABLE IF EXISTS cards;
+
+DROP TABLE IF EXISTS credentials;
