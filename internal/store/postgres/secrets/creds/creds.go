@@ -78,7 +78,7 @@ func (repo *repo) GetKeysList(ctx context.Context, userID string) ([]types.Key, 
 }
 
 func (repo *repo) Update(ctx context.Context, userID, id string, creds *types.Credentials) error {
-	if id == "" {
+	if id == "" || creds == nil {
 		return errors.New("repository: incorrect parameters")
 	}
 

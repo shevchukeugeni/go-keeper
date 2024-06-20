@@ -16,9 +16,9 @@ type service struct {
 	logger  *zap.Logger
 }
 
-func NewService(noteStorage Storage, logger *zap.Logger) (store.FileService, error) {
+func NewService(fileStorage Storage, logger *zap.Logger) (store.FileService, error) {
 	return &service{
-		storage: noteStorage,
+		storage: fileStorage,
 		logger:  logger,
 	}, nil
 }

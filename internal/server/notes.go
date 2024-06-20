@@ -38,7 +38,7 @@ func (ro *router) createNote(w http.ResponseWriter, r *http.Request) {
 
 	err = ro.notesRepo.Create(r.Context(), userID, id, note)
 	if err != nil {
-		http.Error(w, "failed to create: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to create: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -54,10 +54,6 @@ func (ro *router) getNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	noteID := chi.URLParam(r, "id")
-	if noteID == "" {
-		http.Error(w, "empty key", http.StatusBadRequest)
-		return
-	}
 
 	note, err := ro.notesRepo.Get(r.Context(), userID, noteID)
 	if err != nil {
@@ -65,7 +61,7 @@ func (ro *router) getNote(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "no such record", http.StatusNotFound)
 			return
 		}
-		http.Error(w, "failed to get from db: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to get from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -87,12 +83,11 @@ func (ro *router) getNotesKeys(w http.ResponseWriter, r *http.Request) {
 
 	noteKeys, err := ro.notesRepo.GetKeysList(r.Context(), userID)
 	if err != nil {
-		http.Error(w, "failed to get from db: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if len(noteKeys) == 0 {
-		http.Error(w, "no records", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "no recorded notes found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to get from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -128,7 +123,11 @@ func (ro *router) updateNote(w http.ResponseWriter, r *http.Request) {
 
 	err = ro.notesRepo.Update(r.Context(), userID, req.ID, note)
 	if err != nil {
-		http.Error(w, "failed to update: "+err.Error(), http.StatusBadRequest)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "nothing to update", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to update: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -144,14 +143,14 @@ func (ro *router) deleteNote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	noteID := chi.URLParam(r, "id")
-	if noteID == "" {
-		http.Error(w, "empty key", http.StatusBadRequest)
-		return
-	}
 
 	err = ro.notesRepo.Delete(r.Context(), userID, noteID)
 	if err != nil {
-		http.Error(w, "failed to delete from db: "+err.Error(), http.StatusBadRequest)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "nothing to delete", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to delete from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

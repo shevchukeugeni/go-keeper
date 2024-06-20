@@ -96,21 +96,14 @@ func (ro *router) createFile(w http.ResponseWriter, r *http.Request) {
 
 	err = ro.fileService.Create(r.Context(), userID, dto)
 	if err != nil {
-		http.Error(w, "unable to store file: "+err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, "unable to store file: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
 
 func (ro *router) deleteFile(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	fileId := chi.URLParam(r, "id")
-	if fileId == "" {
-		http.Error(w, "empty fileID", http.StatusBadRequest)
-		return
-	}
-
 	userID, err := auth.GetUserID(r)
 	if err != nil {
 		http.Error(w, "Unauthorized: "+err.Error(), http.StatusUnauthorized)
@@ -119,7 +112,7 @@ func (ro *router) deleteFile(w http.ResponseWriter, r *http.Request) {
 
 	err = ro.fileService.Delete(r.Context(), userID, fileId)
 	if err != nil {
-		http.Error(w, "unable to delete: "+err.Error(), http.StatusUnprocessableEntity)
+		http.Error(w, "unable to delete: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

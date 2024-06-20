@@ -50,7 +50,6 @@ func SetupRouter(logger *zap.Logger,
 func (ro *router) Handler() http.Handler {
 	rtr := chi.NewRouter()
 	rtr.Use(middleware.Logger)
-	rtr.Get("/ping", ro.ping)
 	rtr.Get("/clients/*", func(w http.ResponseWriter, r *http.Request) {
 		workDir, _ := os.Getwd()
 		filesDir := http.Dir(workDir)
@@ -159,9 +158,5 @@ func (ro *router) auth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Authorization", fmt.Sprintf("Bearer %s", tokenString))
-	w.WriteHeader(http.StatusOK)
-}
-
-func (ro *router) ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }

@@ -9,7 +9,7 @@ import (
 )
 
 type User struct {
-	ID        string    `db:"id"          json:"ID"`
+	ID        string    `db:"id"          json:"id"`
 	CreatedAt time.Time `db:"created_at"  json:"created_at"`
 	Login     string    `db:"login"       json:"login"`
 	Password  string    `db:"password"    json:"password"`

@@ -38,7 +38,7 @@ func (ro *router) createCredentials(w http.ResponseWriter, r *http.Request) {
 
 	err = ro.credsRepo.Create(r.Context(), userID, id, creds)
 	if err != nil {
-		http.Error(w, "failed to create: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to create: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -54,10 +54,6 @@ func (ro *router) getCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := chi.URLParam(r, "id")
-	if id == "" {
-		http.Error(w, "empty site", http.StatusBadRequest)
-		return
-	}
 
 	note, err := ro.credsRepo.Get(r.Context(), userID, id)
 	if err != nil {
@@ -65,7 +61,7 @@ func (ro *router) getCredentials(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "no such record", http.StatusNotFound)
 			return
 		}
-		http.Error(w, "failed to get from db: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to get from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -87,12 +83,11 @@ func (ro *router) getSites(w http.ResponseWriter, r *http.Request) {
 
 	sitesList, err := ro.credsRepo.GetKeysList(r.Context(), userID)
 	if err != nil {
-		http.Error(w, "failed to get from db: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if len(sitesList) == 0 {
-		http.Error(w, "no credentials", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "no credentials info", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to get from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -128,7 +123,11 @@ func (ro *router) updateCredentials(w http.ResponseWriter, r *http.Request) {
 
 	err = ro.credsRepo.Update(r.Context(), userID, req.ID, creds)
 	if err != nil {
-		http.Error(w, "failed to update: "+err.Error(), http.StatusBadRequest)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "nothing to update", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to update: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -144,14 +143,14 @@ func (ro *router) deleteCredentials(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := chi.URLParam(r, "id")
-	if id == "" {
-		http.Error(w, "empty key", http.StatusBadRequest)
-		return
-	}
 
 	err = ro.credsRepo.Delete(r.Context(), userID, id)
 	if err != nil {
-		http.Error(w, "failed to delete from db: "+err.Error(), http.StatusBadRequest)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "nothing to delete", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to delete from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 

@@ -38,7 +38,7 @@ func (ro *router) createCard(w http.ResponseWriter, r *http.Request) {
 
 	err = ro.cardsRepo.Create(r.Context(), userID, id, cardInfo)
 	if err != nil {
-		http.Error(w, "failed to create: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to create: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -54,10 +54,6 @@ func (ro *router) getCardInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cardID := chi.URLParam(r, "id")
-	if cardID == "" {
-		http.Error(w, "empty id", http.StatusBadRequest)
-		return
-	}
 
 	card, err := ro.cardsRepo.Get(r.Context(), userID, cardID)
 	if err != nil {
@@ -65,7 +61,7 @@ func (ro *router) getCardInfo(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "no such record", http.StatusNotFound)
 			return
 		}
-		http.Error(w, "failed to get from db: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to get from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -87,12 +83,11 @@ func (ro *router) getCardsList(w http.ResponseWriter, r *http.Request) {
 
 	cardsIDs, err := ro.cardsRepo.GetKeysList(r.Context(), userID)
 	if err != nil {
-		http.Error(w, "failed to get from db: "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if len(cardsIDs) == 0 {
-		http.Error(w, "no cards info", http.StatusNotFound)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "no cards info", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to get from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -127,18 +122,21 @@ func (ro *router) updateCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if cardInfo.ID == "" {
-		http.Error(w, "incorrect data: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "incorrect data: empty id", http.StatusBadRequest)
 		return
 	}
 
 	err = ro.cardsRepo.Update(r.Context(), userID, cardInfo.ID, cardInfo)
 	if err != nil {
-		http.Error(w, "failed to update: "+err.Error(), http.StatusBadRequest)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "nothing to update", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to update: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	return
 }
 
 func (ro *router) deleteCard(w http.ResponseWriter, r *http.Request) {
@@ -149,17 +147,16 @@ func (ro *router) deleteCard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cardID := chi.URLParam(r, "id")
-	if cardID == "" {
-		http.Error(w, "empty id", http.StatusBadRequest)
-		return
-	}
 
 	err = ro.cardsRepo.Delete(r.Context(), userID, cardID)
 	if err != nil {
-		http.Error(w, "failed to delete from db: "+err.Error(), http.StatusBadRequest)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "nothing to delete", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "failed to delete from db: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-	return
 }
